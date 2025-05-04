@@ -1,0 +1,15 @@
+# General
+.DS_Store
+
+# Environments
+.env
+# VSCODE IDE
+.vscode
+
+# pyenv
+.python-version
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+output.csv
