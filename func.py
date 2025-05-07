@@ -2,8 +2,10 @@ import csv
 import ipaddress
 import re
 import socket
+from io import StringIO
 
 import dns.exception
+import pandas as pd
 from dns.resolver import Resolver
 
 cf_iprange: list[str] = [
@@ -159,6 +161,8 @@ def check_ip_range_port_80(ip_range_cidr):
                 s.settimeout(2)  # Set a timeout to avoid indefinite blocking
                 result = s.connect_ex((str(ip), 80))  # Use connect_ex for non-blocking check
                 if result == 0:  # 0 indicates a successful connection
+                    print(str(ip))
+                    append_string_to_csv("./data/ports80.csv", str(ip))
                     open_ports.append(str(ip))
         except socket.gaierror:
             print(f"Could not resolve address for {ip}")
@@ -168,3 +172,47 @@ def check_ip_range_port_80(ip_range_cidr):
             continue
 
     return open_ports
+
+
+def append_string_to_csv(csv_filepath, string_to_append):
+    try:
+        df = pd.read_csv(csv_filepath)
+    except FileNotFoundError:
+        df = pd.DataFrame()
+
+    string_io = StringIO(string_to_append)
+    df_to_append = pd.read_csv(string_io, header=None)
+
+    df = pd.concat([df_to_append], ignore_index=True)
+    df.to_csv(csv_filepath, mode="a", index=False, header=False)
+
+
+csv_file = "my_data.csv"
+string_data = "value1 value2 value3"
+append_string_to_csv(csv_file, string_data)
+
+
+def get_column_pandas(file_path, column_name):
+    """
+    Extracts a column from a CSV file using pandas.
+
+    Args:
+        file_path (str): The path to the CSV file.
+        column_name (str): The name of the column to extract.
+
+    Returns:
+        list: A list containing the values from the specified column, or None if an error occurs.
+    """
+    try:
+        df = pd.read_csv(file_path)
+        if column_name in df.columns:
+            return df[column_name].tolist()
+        else:
+            print(f"Error: Column '{column_name}' not found.")
+            return None
+    except FileNotFoundError:
+        print(f"Error: File not found at '{file_path}'")
+        return None
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return None
