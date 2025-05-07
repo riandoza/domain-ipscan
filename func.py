@@ -187,9 +187,14 @@ def append_string_to_csv(csv_filepath, string_to_append):
     df.to_csv(csv_filepath, mode="a", index=False, header=False)
 
 
-csv_file = "my_data.csv"
-string_data = "value1 value2 value3"
-append_string_to_csv(csv_file, string_data)
+def is_csv_by_sniffing(filename):
+    try:
+        with open(filename) as file:
+            start = file.read(4096)
+            csv.Sniffer().sniff(start)
+        return True
+    except csv.Error:
+        return False
 
 
 def get_column_pandas(file_path, column_name):

@@ -12,6 +12,7 @@ from func import (
     dns_lookup,
     input_files,
     ip_to_cidr,
+    is_csv_by_sniffing,
     validate_domain_name,
     validate_ip,
 )
@@ -52,12 +53,14 @@ def main():
             with open("./data/output_filtered.csv", "w") as f:
                 pass
             if "==" not in item:
-                sys.exit("Invalid filter format. Use '==' to separate column name from value.")
+                print("Invalid filter format. Use '==' to separate column name from value.")
+                break
             row = item.strip().split("==")
             df = pd.read_csv(args.file)
             filtered_df = df[df[row[0]].str.contains(row[1])]
             if filtered_df is not None and len(filtered_df) > 0:
                 filtered_df.to_csv("./data/output_filtered.csv", mode="a", header=False, index=False)
+        gc.collect()
 
     if args.cidr:
         open_ports = check_ip_range_port_80(args.cidr)
@@ -68,19 +71,26 @@ def main():
                 print(ip)
         else:
             print("No IPs with port 80 open found in the specified range.")
+        gc.collect()
 
     if args.duplicate:
-        if not args.duplicate.lower().endswith(".csv"):
-            sys.exit("Error: The filename must end with '.csv'")
+        try:
+            if is_csv_by_sniffing(args.duplicate):
+                pass
+        except OSError as e:
+            print("Error opening file:", e)
         file_path = args.duplicate
         try:
-            data = pd.read_csv(file_path)
-            data = data.drop_duplicates()
-            data.to_csv(file_path, index=False)
+            df = pd.read_csv(file_path)
+            df = df.drop_duplicates()
+            df.to_csv(file_path, index=False)
+            total_rows = df.shape[0]
+            print(f"Duplicates removed from file. Total rows: {total_rows}")
         except pd.errors.EmptyDataError:
             print(f"Skipping empty file: {file_path}")
         except FileNotFoundError:
             print(f"File not found: {file_path}")
+        gc.collect()
 
     if args.files:
         list_of_addr = input_files(args.files)
@@ -107,6 +117,7 @@ def main():
         fields = ["cidr", "ipv4", "domain", "dns"]
 
         append_dict_to_csv(filename, fields, output)
+        gc.collect()
 
 
 if __name__ == "__main__":
