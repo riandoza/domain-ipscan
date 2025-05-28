@@ -2,6 +2,20 @@
 
 This process helps identify potential vulnerabilities and misconfigurations within a network based on the IP addresses used by a domain.
 
+Before running this script make sure to install all the required dependencies using the following command:
+
+`pip install -r requirements.txt`
+
+## Available Tools
+
+- [x] Cloudflare domain scan (`cf`)
+- [x] CIDR scan open port (`cidr`)
+- [x] Get IP Country Code (`ip2cc`)
+- [x] Filtering CSV file (`filter`)
+- [x] Duplicate Removal (`duplicate`)
+
+## Usage
+
 Scans a list of IP or domains and their corresponding IP addresses to check if they are not in cloudflare's network.
 
 ```
