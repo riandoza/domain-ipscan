@@ -1,8 +1,11 @@
 import csv
 import ipaddress
+import os
 import re
 import socket
+import sys
 from io import StringIO
+from pathlib import Path
 
 import dns.exception
 import pandas as pd
@@ -27,18 +30,26 @@ cf_iprange: list[str] = [
 ]
 
 
+def process_file(file_path):
+    filename = Path(file_path)
+    if filename.suffix in [".csv", ".txt"]:
+        return file_path
+    else:
+        return sys.exit("filename not allowed\nOnly txt or csv file are allowed")
+
+
 def input_files(file_list):
-    ips = []
+    data = []
     for filename in file_list:
         try:
             with open(filename) as file:
                 for line in file:
                     if not line.strip():
                         continue
-                    ips.append(line.strip())
+                    data.append(line.strip())
         except FileNotFoundError:
             print(f"Error: File not found: {filename}")
-    return ips
+    return data
 
 
 def append_dict_to_csv(file_path, field_names, data_dict):
@@ -99,7 +110,7 @@ def dns_lookup(input, timeout=3, server=None):
             "error": "",
             "name": input,
         }
-    except dns.resolver.NXDOMAIN as e:
+    except dns.resolver.NXDOMAIN:
         result = {
             "addrs": [],
             "error": f"No such domain {input}",
@@ -137,15 +148,26 @@ def ip_to_cidr(ip_address_string):
         return None
 
 
-def check_ip_range_port_80(ip_range_cidr):
+def validate_port(port):
+    try:
+        port = int(port)
+    except ValueError:
+        print(f"{port} is not a valid port number")
+    if 1 <= port <= 65535:
+        return port
+    else:
+        print(f"{port} is not a valid port number")
+
+
+def check_ip_range_port(ip_range_cidr, port_number=80, output_file=None):
     """
-    Checks which IP addresses within a given CIDR range have port 80 open.
+    Checks which IP addresses within a given CIDR range have port_number open.
 
     Args:
     ip_range_cidr: A string representing the CIDR range (e.g., "192.168.1.0/24").
 
     Returns:
-    A list of IP addresses with port 80 open.
+    A list of IP addresses with port_number open.
     """
 
     open_ports = []
@@ -159,10 +181,10 @@ def check_ip_range_port_80(ip_range_cidr):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.settimeout(2)  # Set a timeout to avoid indefinite blocking
-                result = s.connect_ex((str(ip), 80))  # Use connect_ex for non-blocking check
+                result = s.connect_ex((str(ip), port_number))  # Use connect_ex for non-blocking check
                 if result == 0:  # 0 indicates a successful connection
                     print(str(ip))
-                    append_string_to_csv("./data/ports80.csv", str(ip))
+                    append_string_to_csv(output_file, str(ip))
                     open_ports.append(str(ip))
         except socket.gaierror:
             print(f"Could not resolve address for {ip}")
